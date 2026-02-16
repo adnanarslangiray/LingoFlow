@@ -1,11 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Mic, Settings } from 'lucide-react';
+import { useAudio } from '../context/AudioContext';
+import { SettingsModal } from './Settings/SettingsModal';
 
 interface LayoutProps {
     children: React.ReactNode;
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const { apiKey, setApiKey, language, setLanguage, voiceURI, setVoiceURI } = useAudio();
+
+    const handleSaveSettings = (newApiKey: string, newLanguage: string, newVoiceURI: string) => {
+        setApiKey(newApiKey);
+        setLanguage(newLanguage);
+        setVoiceURI(newVoiceURI);
+    };
+
     return (
         <div className="min-h-screen w-full bg-gray-950 text-white flex flex-col items-center justify-start relative overflow-hidden font-sans">
             {/* Background Ambience */}
@@ -29,6 +40,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                         </div>
                     </div>
                     <button
+                        onClick={() => setIsSettingsOpen(true)}
                         className="p-2.5 rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white active:scale-95 duration-200"
                         aria-label="Settings"
                     >
@@ -40,6 +52,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <main className="flex-1 overflow-y-auto w-full relative flex flex-col">
                     {children}
                 </main>
+
+                <SettingsModal
+                    isOpen={isSettingsOpen}
+                    onClose={() => setIsSettingsOpen(false)}
+                    onSave={handleSaveSettings}
+                    currentApiKey={apiKey}
+                    currentLanguage={language}
+                    currentVoiceURI={voiceURI}
+                />
 
             </div>
         </div>

@@ -6,10 +6,14 @@ interface AudioContextType {
     transcript: string;
     startListening: () => void;
     stopListening: () => void;
-    speak: (text: string, lang?: string) => void;
+    speak: (text: string) => void;
     stopSpeaking: () => void;
     language: string;
     setLanguage: (lang: string) => void;
+    apiKey: string;
+    setApiKey: (key: string) => void;
+    voiceURI: string;
+    setVoiceURI: (uri: string) => void;
     recognitionCheck: boolean;
     resetTranscript: () => void;
 }
@@ -17,16 +21,33 @@ interface AudioContextType {
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    // Load initial state from localStorage
+    const [apiKey, setApiKey] = useState(localStorage.getItem('speakai_apikey') || '');
+    const [language, setLanguage] = useState(localStorage.getItem('speakai_language') || 'en-US');
+    const [voiceURI, setVoiceURI] = useState(localStorage.getItem('speakai_voice') || '');
+
     const [isListening, setIsListening] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [transcript, setTranscript] = useState('');
-    const [language, setLanguage] = useState('en-US'); // Default to English
     const [recognitionCheck, setRecognitionCheck] = useState(true);
 
     const resetTranscript = () => setTranscript('');
 
     const recognitionRef = useRef<any>(null);
     const synthRef = useRef<SpeechSynthesis>(window.speechSynthesis);
+
+    // Persist settings
+    useEffect(() => {
+        localStorage.setItem('speakai_apikey', apiKey);
+    }, [apiKey]);
+
+    useEffect(() => {
+        localStorage.setItem('speakai_language', language);
+    }, [language]);
+
+    useEffect(() => {
+        localStorage.setItem('speakai_voice', voiceURI);
+    }, [voiceURI]);
 
     useEffect(() => {
         if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
@@ -44,7 +65,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                     if (event.results[i].isFinal) {
                         setTranscript(event.results[i][0].transcript);
-                        // Here we would typically trigger the AI response
                     } else {
                         interimTranscript += event.results[i][0].transcript;
                     }
@@ -70,7 +90,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const startListening = () => {
         if (recognitionRef.current && !isListening) {
-            recognitionRef.current.start();
+            try {
+                recognitionRef.current.start();
+            } catch (e) {
+                console.error("Error starting recognition:", e);
+            }
         }
     };
 
@@ -80,7 +104,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
     };
 
-    const speak = (text: string, lang: string = language) => {
+    const speak = (text: string) => {
         if (synthRef.current.speaking) {
             console.error('speechSynthesis.speaking');
             return;
@@ -90,10 +114,16 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             utterThis.onend = () => setIsSpeaking(false);
             utterThis.onerror = (error) => console.error('Speech Synthesis Error:', error);
 
-            utterThis.lang = lang;
-            // Optional: Select a specific voice based on language
-            // const voices = synthRef.current.getVoices();
-            // utterThis.voice = voices.find(...)
+            utterThis.lang = language;
+
+            // Set preferred voice if available
+            if (voiceURI) {
+                const voices = synthRef.current.getVoices();
+                const selectedVoice = voices.find(v => v.voiceURI === voiceURI);
+                if (selectedVoice) {
+                    utterThis.voice = selectedVoice;
+                }
+            }
 
             setIsSpeaking(true);
             synthRef.current.speak(utterThis);
@@ -118,6 +148,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             stopSpeaking,
             language,
             setLanguage,
+            apiKey,
+            setApiKey,
+            voiceURI,
+            setVoiceURI,
             recognitionCheck,
             resetTranscript
         }}>

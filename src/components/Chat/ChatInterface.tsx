@@ -21,7 +21,9 @@ export const ChatInterface: React.FC = () => {
         startListening,
         stopListening,
         resetTranscript,
-        speak
+        speak,
+        apiKey,
+        language
     } = useAudio();
 
     const [messages, setMessages] = useState<Message[]>([
@@ -68,7 +70,7 @@ export const ChatInterface: React.FC = () => {
         setIsProcessing(true);
 
         try {
-            const responseText = await getAIResponse(text);
+            const responseText = await getAIResponse(text, apiKey, language);
 
             const aiMessage: Message = {
                 id: (Date.now() + 1).toString(),
@@ -148,8 +150,8 @@ export const ChatInterface: React.FC = () => {
                             <button
                                 onClick={toggleListening}
                                 className={`p-3 rounded-full transition-all duration-300 shadow-lg ${isListening
-                                        ? 'bg-red-500 text-white shadow-red-500/20 animate-pulse'
-                                        : 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-sky-500/20 hover:scale-105'
+                                    ? 'bg-red-500 text-white shadow-red-500/20 animate-pulse'
+                                    : 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-sky-500/20 hover:scale-105'
                                     }`}
                             >
                                 {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
